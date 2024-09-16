@@ -31,7 +31,7 @@ def instantiate(cfg):
     try:
         module = importlib.import_module(cfg['Module'])
     except ModuleNotFoundError:
-        print(yaml.dump(cfg),default_flow_style=False)
+        print(yaml.dump(cfg,default_flow_style=False))
         raise ModuleNotFoundError(f'Module name {cfg["Module"]} not found')
 
     class_name = cfg['Name']
