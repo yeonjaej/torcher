@@ -5,6 +5,7 @@ import torcher.util
 from torcher.util import configure_model, configure_train, configure_inference
 from torcher.util import verify_config_keys, VALID_CONFIG_KEYS
 import numpy as np
+import h5py
 
 
 class trainer(torch.nn.Module):
@@ -72,7 +73,6 @@ class trainer(torch.nn.Module):
                 self.move_dict_device(data,self.device)
                 self.move_dict_device(label,self.device)
                 prediction = self.model(data)
-
                 epoch += iter2epoch
 
                 if hasattr(self,'criterion'):
@@ -80,15 +80,19 @@ class trainer(torch.nn.Module):
                     loss_record.append(loss['loss'].detach().item())
 
                 if self.out_file:
-                    data.update(prediction)
-                    data.update(label)
-                    self.dict_tensor_to_numpy(data)
+
+                    for dic in [data,label,prediction,loss]:
+                        self.dict_tensor_to_numpy(dic)
+                    dict_data = dict(input=data, label=label, output=prediction, loss=loss)
 
                     if out_data is None:
-                        out_data = {key:[val] for key,val in data.items()}
+                        out_data = dict()
+                        for key,val in dict_data.items():
+                            out_data[key]={k:[v] for k,v in val.items()}
                     else:
-                        for key,val in data.items():
-                            out_data[key].append(val)
+                        for key,val in dict_data.items():
+                            for k,v in val.items():
+                                out_data[key][k].append(v)
 
                 if epoch >= self.inference_epochs:
                     break
@@ -97,12 +101,21 @@ class trainer(torch.nn.Module):
             print(f'Inference loss average: {np.mean(loss_record)}')
 
         if out_data is not None:
+
             file_name = self.out_file % self.trained_epochs
             print(f'Saving the inference output {file_name}')
-            if len(loss_record):
-                out_data['loss']=np.array(loss_record,dtype=float)
-            np.savez(file_name,**out_data)
 
+            with h5py.File(file_name,'w') as f:
+
+                for key,val in out_data.items():
+                    grp = f.create_group(key)
+                    for k,v in val.items():
+                        if len(v[0].shape) < 1:
+                            grp.create_dataset(k,data=np.stack(v))
+                        else:
+                            grp.create_dataset(k,data=np.concatenate(v))
+
+            print('Finished saving the output')
     
     def move_dict_device(self,data,device=None):
         if device is None: device = self.device 
@@ -164,9 +177,9 @@ class trainer(torch.nn.Module):
                     report_counter += 1
 
                     total_time = self.log["time_pre"][-1] + self.log["time_train"][-1] + self.log["time_post"][-1]
-                    time_pre   = 100.*self.log["time_pre"][-1]/total_time
-                    time_train = 100.*self.log["time_train"][-1]/total_time
-                    time_post  = 100.*self.log["time_post"][-1]/total_time
+                    time_pre   = 100.*self.log[ "time_pre"   ][-1]/total_time
+                    time_train = 100.*self.log[ "time_train" ][-1]/total_time
+                    time_post  = 100.*self.log[ "time_post"  ][-1]/total_time
                     msg  = 'Epoch %06.2f ... Loss %05.5f ... Time %02.2f' % (self.trained_epochs,loss['loss'].item(),total_time)
                     msg += ' (Preproc %02.2f%%  Train %02.2f%%  Postproc %02.2f%%)' % (time_pre,time_train,time_post)
                     print(msg)
