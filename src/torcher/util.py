@@ -208,7 +208,7 @@ def configure_train(cfg, obj=None):
 
     if cfg['LogPrefix']:
         if check_prefix(cfg['LogPrefix']):            
-            train_log_file = cfg['LogPrefix'] + '_train_ecpochs_%10.2f.npz'
+            train_log_file = cfg['LogPrefix'] + '_train.npz'
         else:
             raise ValueError(f'Could not find/create the log file path {cfg["LogPrefix"]}')
     else:
@@ -273,7 +273,7 @@ def configure_inference(cfg, obj=None):
         raise ValueError(f'Could not find/create the out file path {cfg["Output"]}')
     if cfg['LogPrefix']:
         if check_prefix(cfg['LogPrefix']):            
-            inference_log_file = cfg['LogPrefix'] + '_inference_ecpochs_%10.2f.npz'
+            inference_log_file = cfg['LogPrefix'] + '_inference_ecpochs_%010.2f.npz'
         else:
             raise ValueError(f'Could not find/create the log file path {cfg["LogPrefix"]}')
     else:
