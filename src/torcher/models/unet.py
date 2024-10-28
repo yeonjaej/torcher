@@ -1,5 +1,5 @@
 import numpy as np
-from isproc.models.resnet import ResNetLayer 
+from torcher.models.resnet import ResNetLayer 
 import torch
 import torch.nn.functional as F
 
